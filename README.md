@@ -35,6 +35,8 @@ For a detailed walkthrough of the algorithm and an application to the HURDAT2 At
 vignette("TRACLUS-introduction", package = "TRACLUS")
 ```
 
+Or view the rendered vignette online: https://martinhoblisch.github.io/TRACLUS/
+
 ## Algorithm
 
 TRACLUS clusters trajectories in three phases:
