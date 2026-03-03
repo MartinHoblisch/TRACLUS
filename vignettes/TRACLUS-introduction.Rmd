@@ -238,12 +238,8 @@ clustered_segs <- cluster_segments(segs,
 cat("Cluster assignments:\n")
 print(table(clustered_segs$cluster_id, useNA = "ifany"))
 ```
-```{r clustering-plot}
-reps_toy <- compute_all_representatives(clustered_segs,
-                                        min_lns = 3,
-                                        gamma   = 1)
-plot_traclus_result(clustered_segs, reps_toy,
-                    title = "Clustering result (eps=20, min_lns=3)")
+```{r clustered_segs-plot}
+plot_traclus_result(clustered_segs, title = "Clustering result (eps=20, min_lns=3)")
 ```
 
 Dashed grey segments are noise. Coloured segments belong to the shared cluster
@@ -288,7 +284,13 @@ single_cluster <- clustered_segs[!is.na(clustered_segs$cluster_id) &
 rt <- compute_representative(single_cluster, min_lns = 3, gamma = 1)
 head(rt)
 ```
-
+```{r clustering-plot}
+reps_toy <- compute_all_representatives(clustered_segs,
+                                        min_lns = 3,
+                                        gamma   = 1)
+plot_traclus_result(clustered_segs, reps_toy,
+                    title = "Clustering result (eps=20, min_lns=3)")
+```
 The bold coloured line in the plot above summarises the shared movement pattern
 of the five clustered trajectories through the middle section.
 
