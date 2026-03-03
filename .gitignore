@@ -1,0 +1,30 @@
+# --- Build artifacts (C++) ---
+src/*.o
+src/*.so
+src/*.dll
+src-i386/
+src-x64/
+
+# --- R artifacts ---
+.Rhistory
+.RData
+.Rproj.user/
+*.Rcheck/
+.Rapp.history
+
+# --- Package Build Output ---
+/*.tar.gz
+/doc/
+/Meta/
+
+# --- Vignettes ---
+vignettes/*.html
+vignettes/*.pdf
+vignettes/*_files/
+vignettes/*.R
+# Falls du 'cache = TRUE' in Rmd nutzt:
+vignettes/*_cache/
+
+# --- OS specific ---
+.DS_Store
+Thumbs.db

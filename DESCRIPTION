@@ -1,0 +1,29 @@
+Package: TRACLUS
+Title: Trajectory Clustering via Partition-and-Group Framework
+Version: 1.0.0
+Authors@R: 
+    person("Martin", "Hoblisch", , "martin.hoblisch@tu-dresden.de", role = c("aut", "cre"))
+Description: Implements the TRACLUS algorithm for trajectory clustering
+    based on the partition-and-group framework proposed by Lee, Han & Whang (2007).
+    Trajectories are partitioned into line segments using the Minimum Description
+    Length (MDL) principle, and similar segments are grouped using a 
+    density-based clustering approach.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    Rcpp
+LinkingTo:
+    Rcpp
+Suggests:
+    testthat (>= 3.0.0),
+    ggplot2,
+    knitr,
+    rmarkdown,
+    leaflet,
+    sf
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://github.com/MartinHoblisch/TRACLUS
+BugReports: https://github.com/MartinHoblisch/TRACLUS/issues
