@@ -18,7 +18,6 @@ LinkingTo:
     Rcpp
 Suggests:
     testthat (>= 3.0.0),
-    ggplot2,
     knitr,
     rmarkdown,
     leaflet,
