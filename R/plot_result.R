@@ -118,9 +118,10 @@ plot_traclus_result <- function(clustered_segs,
   }
 
   # --- Legend ---
-  if (show_legend && length(cluster_ids) > 0L) {
-    legend_labels <- paste("Cluster", cluster_ids)
-    legend_cols   <- pal[(seq_along(cluster_ids) - 1L) %% length(pal) + 1L]
+  if (show_legend && !is.null(representatives) && length(representatives) > 0L) {
+    rep_ids       <- as.integer(names(representatives))
+    legend_labels <- paste("Cluster", rep_ids)
+    legend_cols   <- pal[(match(rep_ids, cluster_ids) - 1L) %% length(pal) + 1L]
     legend("bottomright",
            legend = legend_labels,
            col    = legend_cols,

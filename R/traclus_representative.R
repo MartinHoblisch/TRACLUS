@@ -119,38 +119,40 @@ compute_representative <- function(cluster_segs, min_lns, gamma = 1) {
   e_x <- ends_rot[, 1];    e_y <- ends_rot[, 2]
 
   for (r in seq_len(nrow(events))) {
-    idx <- events$seg_idx[r]
+    idx     <- events$seg_idx[r]
+    x_prime <- events$x_prime[r]
 
-    # Activate or deactivate the segment at this sweep position
-    active[idx] <- events$is_start[r]
+    if (events$is_start[r]) {
+      # START: erst aktivieren, dann prüfen
+      active[idx] <- TRUE
+    }
+    # END: Segment bleibt noch aktiv für diesen Check
 
     n_active <- sum(active)
-    x_prime  <- events$x_prime[r]
 
-    # Density threshold: only emit a waypoint when enough segments overlap
-    if (n_active < min_lns) next
-    # Spacing threshold: skip waypoints too close to the previous one (gamma smoothing)
-    if ((x_prime - last_x_prime) < gamma) next
+    if (n_active >= min_lns && (x_prime - last_x_prime) >= gamma) {
+      act_idx <- which(active)
+      seg_dx  <- e_x[act_idx] - s_x[act_idx]
+      vertical <- abs(seg_dx) < .Machine$double.eps
 
-    # Vectorised interpolation of each active segment's y' value at the sweep position
-    act_idx <- which(active)
-    seg_dx  <- e_x[act_idx] - s_x[act_idx]
-    vertical <- abs(seg_dx) < .Machine$double.eps
+      t <- numeric(length(act_idx))
+      t[vertical]  <- 0.5
+      t[!vertical] <- (x_prime - s_x[act_idx[!vertical]]) / seg_dx[!vertical]
 
-    t <- numeric(length(act_idx))
-    t[vertical]  <- 0.5  # midpoint for vertical segments
-    t[!vertical] <- (x_prime - s_x[act_idx[!vertical]]) / seg_dx[!vertical]
+      y_vals <- s_y[act_idx] + t * (e_y[act_idx] - s_y[act_idx])
 
-    y_vals <- s_y[act_idx] + t * (e_y[act_idx] - s_y[act_idx])
+      wp_count       <- wp_count + 1L
+      wp_x[wp_count] <- x_prime
+      wp_y[wp_count] <- mean(y_vals)
+      last_x_prime   <- x_prime
+    }
 
-    # Waypoint is the centroid of all active segments at this sweep position
-    wp_count          <- wp_count + 1L
-    wp_x[wp_count]    <- x_prime
-    wp_y[wp_count]    <- mean(y_vals)
-    last_x_prime      <- x_prime
+    if (!events$is_start[r]) {
+      # END: erst jetzt deaktivieren
+      active[idx] <- FALSE
+    }
   }
 
-  # No dense region found: cluster has no representative trajectory
   if (wp_count == 0L) return(NULL)
 
   # Rotate waypoints back to the original coordinate frame
@@ -179,19 +181,27 @@ compute_representative <- function(cluster_segs, min_lns, gamma = 1) {
 #' rts    <- compute_all_representatives(result, min_lns = 3)
 #' length(rts)
 compute_all_representatives <- function(clustered_segs, min_lns, gamma = 1) {
-  # Extract valid cluster IDs in ascending order for deterministic output naming
   cluster_ids <- sort(unique(clustered_segs$cluster_id[
     !is.na(clustered_segs$cluster_id)]))
 
   reps <- list()
   for (cid in cluster_ids) {
-    # Subset to only the segments belonging to this cluster
     csegs <- clustered_segs[!is.na(clustered_segs$cluster_id) &
                               clustered_segs$cluster_id == cid, ]
     rt <- compute_representative(csegs, min_lns = min_lns, gamma = gamma)
-    # NULL means no dense region was found, silently skip rather than storing an empty entry
     if (!is.null(rt)) reps[[as.character(cid)]] <- rt
   }
 
-  reps
+  # Demote clusters without representative to noise
+  valid_cids <- as.integer(names(reps))
+  failed     <- !is.na(clustered_segs$cluster_id) &
+    !(clustered_segs$cluster_id %in% valid_cids)
+  clustered_segs$cluster_id[failed] <- NA_integer_
+  clustered_segs$cluster_id <- .renumber_clusters(clustered_segs$cluster_id)
+  names(reps) <- as.character(seq_along(reps))
+
+  list(
+    segments        = clustered_segs,
+    representatives = reps
+  )
 }

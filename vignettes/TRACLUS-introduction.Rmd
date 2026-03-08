@@ -229,8 +229,8 @@ segments are neighbours. Two parameters control the result:
 
 ```{r clustering}
 clustered_segs <- cluster_segments(segs,
-                                   eps     = 20,
-                                   min_lns = 3,
+                                   eps     = 10,
+                                   min_lns = 2,
                                    w_perp  = 1,
                                    w_par   = 1,
                                    w_angle = 1)
@@ -239,7 +239,7 @@ cat("Cluster assignments:\n")
 print(table(clustered_segs$cluster_id, useNA = "ifany"))
 ```
 ```{r clustered_segs-plot}
-plot_traclus_result(clustered_segs, title = "Clustering result (eps=20, min_lns=3)")
+plot_traclus_result(clustered_segs, title = "Clustering result (eps=10, min_lns=2)")
 ```
 
 Dashed grey segments are noise. Coloured segments belong to the shared cluster
@@ -273,23 +273,23 @@ Lee et al. (2007) do not prescribe a specific value. A sensible starting point
 is a small fraction of the typical segment length in your dataset. For the toy
 dataset with segments of roughly 10 to 20 km, `gamma = 1` works well.
 ```{r representative}
-reps <- compute_all_representatives(clustered_segs,
-                                    min_lns = 3,
-                                    gamma   = 1)
-cat("Clusters with a representative:", length(reps), "\n")
+phase3 <- compute_all_representatives(clustered_segs,
+                                      min_lns = 2,
+                                      gamma   = 0.5)
+cat("Clusters with a representative:", length(phase3$representatives), "\n")
 
 # You can also compute the representative for a single cluster directly:
-single_cluster <- clustered_segs[!is.na(clustered_segs$cluster_id) &
-                                   clustered_segs$cluster_id == 1, ]
+single_cluster <- phase3$segments[!is.na(phase3$segments$cluster_id) &
+                                    phase3$segments$cluster_id == 1, ]
 rt <- compute_representative(single_cluster, min_lns = 3, gamma = 1)
 head(rt)
 ```
 ```{r clustering-plot}
-reps_toy <- compute_all_representatives(clustered_segs,
-                                        min_lns = 3,
-                                        gamma   = 1)
-plot_traclus_result(clustered_segs, reps_toy,
-                    title = "Clustering result (eps=20, min_lns=3)")
+toy_phase3 <- compute_all_representatives(clustered_segs,
+                                          min_lns = 2,
+                                          gamma   = 0.5)
+plot_traclus_result(toy_phase3$segments, toy_phase3$representatives,
+                    title = "Clustering result (eps=10, min_lns=2)")
 ```
 The bold coloured line in the plot above summarises the shared movement pattern
 of the five clustered trajectories through the middle section.
@@ -302,11 +302,11 @@ The `traclus()` function runs all three phases in sequence:
 ```{r full-pipeline}
 traclus_result <- traclus(make_toy_trajectories(),
                           eps     = 20,
-                          min_lns = 3,
+                          min_lns = 2,
                           w_perp  = 1,
                           w_par   = 1,
                           w_angle = 1,
-                          gamma   = 1)
+                          gamma   = 0.5)
 
 str(traclus_result$params)
 print(table(traclus_result$segments$cluster_id, useNA = "ifany"))
@@ -361,7 +361,7 @@ genuinely dense regions qualify as clusters.
 In practice: run `estimate_eps` on your dataset, pick an `eps` from the
 promising range, then try a few values of `min_lns` and compare the results by
 visual inspection. For the toy dataset with only five trajectories sharing a
-common pattern, `min_lns = 3` is a natural starting point.
+common pattern, `min_lns = 2` is a natural starting point.
 
 ---
 
@@ -374,10 +374,10 @@ neutral grey and only the representative trajectories carry colour.
 
 ```{r vis-modes, fig.width = 9, fig.height = 4.5}
 par(mfrow = c(1, 2))
-plot_traclus_result(clustered_segs, reps_toy,
+plot_traclus_result(toy_phase3$segments, toy_phase3$representatives,
                     mode = "clusters",
                     title = "Mode: clusters")
-plot_traclus_result(clustered_segs, reps_toy,
+plot_traclus_result(toy_phase3$segments, toy_phase3$representatives,
                     mode = "representatives",
                     title = "Mode: representatives")
 ```
@@ -465,23 +465,23 @@ cat("Noise segments:", n_ns, "of", nrow(hurdat_clustered), "\n")
 ```
 
 ```{r hurdat-representatives}
-hurdat_reps <- compute_all_representatives(hurdat_clustered,
-                                           min_lns = 5,
-                                           gamma   = 200)
-cat("Representative trajectories:", length(hurdat_reps), "\n")
+hurdat_phase3 <- compute_all_representatives(hurdat_clustered,
+                                             min_lns = 5,
+                                             gamma   = 200)
+cat("Representative trajectories:", length(hurdat_phase3$representatives), "\n")
 ```
 
 ### Visualisation
 
 ```{r hurdat-plot-clusters, fig.width = 9, fig.height = 6}
-plot_traclus_result(hurdat_clustered, hurdat_reps,
+plot_traclus_result(hurdat_phase3$segments, hurdat_phase3$representatives,
                     mode    = "clusters",
                     title   = "Atlantic hurricanes 1950-2004 (cluster view)",
                     seg_lwd = 0.8, noise_lwd = 0.3)
 ```
 
 ```{r hurdat-plot-reps, fig.width = 9, fig.height = 6}
-plot_traclus_result(hurdat_clustered, hurdat_reps,
+plot_traclus_result(hurdat_phase3$segments, hurdat_phase3$representatives,
                     mode    = "representatives",
                     title   = "Atlantic hurricanes 1950-2004 (representative view)",
                     seg_lwd = 0.5, noise_lwd = 0.3)
@@ -512,13 +512,13 @@ segs_to_sf <- function(segs) {
 
 pal <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
          "#0072B2", "#D55E00", "#CC79A7", "#000000")
-cluster_ids <- sort(unique(hurdat_clustered$cluster_id[
-  !is.na(hurdat_clustered$cluster_id)]))
+cluster_ids <- sort(unique(hurdat_phase3$segments$cluster_id[
+  !is.na(hurdat_phase3$segments$cluster_id)]))
 
 m <- leaflet() |> addProviderTiles(providers$CartoDB.Positron)
 
 # Noise segments in grey, dashed
-noise_h <- hurdat_clustered[is.na(hurdat_clustered$cluster_id), ]
+noise_h <- hurdat_phase3$segments[is.na(hurdat_phase3$segments$cluster_id), ]
 if (nrow(noise_h) > 0L) {
   m <- m |> addPolylines(data = segs_to_sf(noise_h),
                          color = "#999999", weight = 0.5, opacity = 0.4,
@@ -528,16 +528,16 @@ if (nrow(noise_h) > 0L) {
 # One layer per cluster (single addPolylines call each)
 for (k in seq_along(cluster_ids)) {
   cid   <- cluster_ids[k]
-  csub  <- hurdat_clustered[!is.na(hurdat_clustered$cluster_id) &
-                              hurdat_clustered$cluster_id == cid, ]
+  csub  <- hurdat_phase3$segments[!is.na(hurdat_phase3$segments$cluster_id) &
+                              hurdat_phase3$segments$cluster_id == cid, ]
   col_k <- pal[(k - 1L) %% length(pal) + 1L]
   m <- m |> addPolylines(data = segs_to_sf(csub),
                          color = col_k, weight = 1, opacity = 0.6)
 }
 
 # Representative trajectories as single polylines with black outline
-for (k in seq_along(hurdat_reps)) {
-  rt    <- hurdat_reps[[k]]
+for (k in seq_along(hurdat_phase3$representatives)) {
+  rt    <- hurdat_phase3$representatives[[k]]
   col_k <- pal[(k - 1L) %% length(pal) + 1L]
   coords <- matrix(c(km_to_lon(rt[, "x"]), km_to_lat(rt[, "y"])), ncol = 2)
   line_sf <- st_sfc(st_linestring(coords), crs = 4326)
@@ -546,14 +546,14 @@ for (k in seq_along(hurdat_reps)) {
                          color = "black", weight = 7, opacity = 1)
   m <- m |> addPolylines(data = line_sf,
                          color = col_k, weight = 5, opacity = 1,
-                         popup = paste("Cluster", names(hurdat_reps)[k]))
+                         popup = paste("Cluster", names(hurdat_phase3$representatives)[k]))
 }
 
 # Legend matching cluster colours
 m <- m |> addLegend(
   position = "bottomright",
-  colors   = c("#999999", pal[seq_along(hurdat_reps)]),
-  labels   = c("Noise", paste("Cluster", names(hurdat_reps))),
+  colors   = c("#999999", pal[seq_along(hurdat_phase3$representatives)]),
+  labels   = c("Noise", paste("Cluster", names(hurdat_phase3$representatives))),
   title    = "Clusters",
   opacity  = 1
 )

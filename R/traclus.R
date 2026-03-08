@@ -66,15 +66,14 @@ traclus <- function(trajectories,
 
   message("Computing representative trajectories...")
   # Phase 3: summarise each cluster into a single representative path
-  reps <- compute_all_representatives(clustered,
-                                      min_lns = min_lns,
-                                      gamma   = gamma)
-  message(sprintf("  -> %d representative trajectories", length(reps)))
+  phase3 <- compute_all_representatives(clustered,
+                                        min_lns = min_lns,
+                                        gamma   = gamma)
+  message(sprintf("  -> %d representative trajectories", length(phase3$representatives)))
 
-  # Return all three outputs together with the parameters used for reproducibility
   list(
-    segments        = clustered,
-    representatives = reps,
+    segments        = phase3$segments,
+    representatives = phase3$representatives,
     params          = list(
       eps     = eps,
       min_lns = min_lns,
